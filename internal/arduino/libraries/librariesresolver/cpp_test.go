@@ -37,7 +37,7 @@ func runResolver(include string, arch string, libs ...*libraries.Library) *libra
 	libraryList.Add(libs...)
 	resolver := &Cpp{headers: make(map[string]libraries.List)}
 	resolver.headers[include] = libraryList
-	return resolver.ResolveFor(include, arch)
+	return resolver.ResolveFor(include, []string{arch})
 }
 
 func TestArchitecturePriority(t *testing.T) {
@@ -97,20 +97,20 @@ func TestClosestMatchWithTotallyDifferentNames(t *testing.T) {
 	libraryList.Add(l8)
 	resolver := &Cpp{headers: make(map[string]libraries.List)}
 	resolver.headers["XYZ.h"] = libraryList
-	res := resolver.ResolveFor("XYZ.h", "xyz")
+	res := resolver.ResolveFor("XYZ.h", []string{"xyz"})
 	require.NotNil(t, res)
 	require.Equal(t, l8, res, "selected library")
 }
 
 func TestCppHeaderPriority(t *testing.T) {
-	r1 := ComputePriority(l1, "calculus_lib.h", "avr")
-	r2 := ComputePriority(l2, "calculus_lib.h", "avr")
-	r3 := ComputePriority(l3, "calculus_lib.h", "avr")
-	r4 := ComputePriority(l4, "calculus_lib.h", "avr")
-	r5 := ComputePriority(l5, "calculus_lib.h", "avr")
-	r6 := ComputePriority(l6, "calculus_lib.h", "avr")
-	r7 := ComputePriority(l7, "calculus_lib.h", "avr")
-	r8 := ComputePriority(l8, "calculus_lib.h", "avr")
+	r1 := ComputePriority(l1, "calculus_lib.h", []string{"avr"})
+	r2 := ComputePriority(l2, "calculus_lib.h", []string{"avr"})
+	r3 := ComputePriority(l3, "calculus_lib.h", []string{"avr"})
+	r4 := ComputePriority(l4, "calculus_lib.h", []string{"avr"})
+	r5 := ComputePriority(l5, "calculus_lib.h", []string{"avr"})
+	r6 := ComputePriority(l6, "calculus_lib.h", []string{"avr"})
+	r7 := ComputePriority(l7, "calculus_lib.h", []string{"avr"})
+	r8 := ComputePriority(l8, "calculus_lib.h", []string{"avr"})
 	require.True(t, r1 > r2)
 	require.True(t, r2 > r3)
 	require.True(t, r3 > r4)
@@ -125,7 +125,7 @@ func TestCppHeaderResolverWithNilResult(t *testing.T) {
 	libraryList := libraries.List{}
 	libraryList.Add(l1)
 	resolver.headers["aaa.h"] = libraryList
-	require.Nil(t, resolver.ResolveFor("bbb.h", "avr"))
+	require.Nil(t, resolver.ResolveFor("bbb.h", []string{"avr"}))
 }
 
 func TestCppHeaderResolver(t *testing.T) {
@@ -136,7 +136,7 @@ func TestCppHeaderResolver(t *testing.T) {
 			librarylist.Add(lib)
 		}
 		resolver.headers[header] = librarylist
-		return resolver.ResolveFor(header, "avr").Name
+		return resolver.ResolveFor(header, []string{"avr"}).Name
 	}
 	require.Equal(t, "Calculus Lib", resolve("calculus_lib.h", l1, l2, l3, l4, l5, l6, l7, l8))
 	require.Equal(t, "Calculus Lib-main", resolve("calculus_lib.h", l2, l3, l4, l5, l6, l7, l8))
@@ -154,11 +154,11 @@ func TestCppHeaderResolverWithLibrariesInStrangeDirectoryNames(t *testing.T) {
 	librarylist.Add(&libraries.Library{DirName: "onewire_2_3_4", Name: "OneWire", Architectures: []string{"*"}})
 	librarylist.Add(&libraries.Library{DirName: "onewireng_2_3_4", Name: "OneWireNg", Architectures: []string{"avr"}})
 	resolver.headers["OneWire.h"] = librarylist
-	require.Equal(t, "onewire_2_3_4", resolver.ResolveFor("OneWire.h", "avr").DirName)
+	require.Equal(t, "onewire_2_3_4", resolver.ResolveFor("OneWire.h", []string{"avr"}).DirName)
 
 	librarylist2 := libraries.List{}
 	librarylist2.Add(&libraries.Library{DirName: "OneWire", Name: "OneWire", Architectures: []string{"*"}})
 	librarylist2.Add(&libraries.Library{DirName: "onewire_2_3_4", Name: "OneWire", Architectures: []string{"avr"}})
 	resolver.headers["OneWire.h"] = librarylist2
-	require.Equal(t, "OneWire", resolver.ResolveFor("OneWire.h", "avr").DirName)
+	require.Equal(t, "OneWire", resolver.ResolveFor("OneWire.h", []string{"avr"}).DirName)
 }

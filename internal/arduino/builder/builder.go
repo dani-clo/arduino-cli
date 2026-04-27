@@ -312,6 +312,16 @@ func (b *Builder) preprocess() error {
 	b.Progress.CompleteStep()
 
 	b.logIfVerbose(false, i18n.Tr("Detecting libraries used..."))
+	// Collect architecture aliases if defined in platform.txt
+	architectures := []string{b.targetPlatform.Platform.Architecture}
+	if aliasesStr, ok := b.buildProperties.GetOk("architecture.aliases"); ok && aliasesStr != "" {
+		aliases := strings.Split(aliasesStr, ",")
+		for _, alias := range aliases {
+			if alias := strings.TrimSpace(alias); alias != "" {
+				architectures = append(architectures, alias)
+			}
+		}
+	}
 	err := b.libsDetector.FindIncludes(
 		b.ctx,
 		b.buildPath,
@@ -321,7 +331,7 @@ func (b *Builder) preprocess() error {
 		b.sketch,
 		b.librariesBuildPath,
 		b.buildProperties,
-		b.targetPlatform.Platform.Architecture,
+		architectures,
 		b.jobs,
 	)
 	if err != nil {

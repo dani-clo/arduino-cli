@@ -103,13 +103,14 @@ func (resolver *Cpp) AlternativesFor(header string) libraries.List {
 }
 
 // ResolveFor finds the most suitable library for the specified combination of
-// header and architecture. If no libraries provides the requested header, nil is returned
-func (resolver *Cpp) ResolveFor(header, architecture string) *libraries.Library {
-	logrus.Infof("Resolving include %s for arch %s", header, architecture)
+// header and architecture(s). If no libraries provides the requested header, nil is returned
+// platformArchitectures is a list of architectures including the main one and any aliases
+func (resolver *Cpp) ResolveFor(header string, platformArchitectures []string) *libraries.Library {
+	logrus.Infof("Resolving include %s for architectures %v", header, platformArchitectures)
 	var found libraries.List
 	var foundPriority int
 	for _, lib := range resolver.headers[header] {
-		libPriority := ComputePriority(lib, header, architecture)
+		libPriority := ComputePriority(lib, header, platformArchitectures)
 		msg := "  discarded"
 		if found == nil || foundPriority < libPriority {
 			found = libraries.List{}
@@ -153,7 +154,7 @@ func simplify(name string) string {
 // ComputePriority returns an integer value representing the priority of the library
 // for the specified header and architecture. The higher the value, the higher the
 // priority.
-func ComputePriority(lib *libraries.Library, header, arch string) int {
+func ComputePriority(lib *libraries.Library, header string, platformArchitectures []string) int {
 	header = strings.TrimSuffix(header, filepath.Ext(header))
 	header = simplify(header)
 	name := simplify(lib.Name)
@@ -161,8 +162,17 @@ func ComputePriority(lib *libraries.Library, header, arch string) int {
 
 	priority := 0
 
+	// Check if library is optimized for any of the platform architectures or their aliases
+	isOptimizedForPlatform := false
+	for _, arch := range platformArchitectures {
+		if lib.IsOptimizedForArchitecture(arch) {
+			isOptimizedForPlatform = true
+			break
+		}
+	}
+
 	// Bonus for core-optimized libraries
-	if lib.IsOptimizedForArchitecture(arch) {
+	if isOptimizedForPlatform {
 		// give a slightly better bonus for libraries that have specific optimization
 		// (it is more important than Location but less important than Name)
 		priority += 1010
@@ -170,7 +180,7 @@ func ComputePriority(lib *libraries.Library, header, arch string) int {
 		// standard bonus for architecture independent (vanilla) libraries
 		priority += 1000
 	} else {
-		// the library is not architecture compatible
+		// the library is not architecture compatible with any of the platform architectures
 		priority += 0
 	}
 

@@ -77,8 +77,8 @@ func (s *arduinoCoreServerImpl) LibraryList(ctx context.Context, req *rpc.Librar
 				}
 			}
 			if latest, has := filteredRes[lib.Library.Name]; has {
-				latestPriority := librariesresolver.ComputePriority(latest.Library, "", fqbn.Architecture)
-				libPriority := librariesresolver.ComputePriority(lib.Library, "", fqbn.Architecture)
+				latestPriority := librariesresolver.ComputePriority(latest.Library, "", []string{fqbn.Architecture})
+				libPriority := librariesresolver.ComputePriority(lib.Library, "", []string{fqbn.Architecture})
 				if latestPriority >= libPriority {
 					// Pick library with the best priority
 					continue

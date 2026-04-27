@@ -94,7 +94,7 @@ func NewSketchLibrariesDetector(
 }
 
 // ResolveLibrary todo
-func (l *SketchLibrariesDetector) resolveLibrary(header, platformArch string) *libraries.Library {
+func (l *SketchLibrariesDetector) resolveLibrary(header string, platformArchitectures []string) *libraries.Library {
 	importedLibraries := l.importedLibraries
 	candidates := l.librariesResolver.AlternativesFor(header)
 
@@ -112,7 +112,7 @@ func (l *SketchLibrariesDetector) resolveLibrary(header, platformArch string) *l
 		return nil
 	}
 
-	selected := l.librariesResolver.ResolveFor(header, platformArch)
+	selected := l.librariesResolver.ResolveFor(header, platformArchitectures)
 	if alreadyImported := importedLibraries.FindByName(selected.Name); alreadyImported != nil {
 		// Certain libraries might have the same name but be different.
 		// This usually happens when the user includes two or more custom libraries that have
@@ -246,7 +246,7 @@ func (l *SketchLibrariesDetector) FindIncludes(
 	sketch *sketch.Sketch,
 	librariesBuildPath *paths.Path,
 	buildProperties *properties.Map,
-	platformArch string,
+	platformArchitectures []string,
 	jobs int,
 ) error {
 	logrus.Debug("Finding required libraries for the sketch.")
@@ -254,7 +254,7 @@ func (l *SketchLibrariesDetector) FindIncludes(
 		logrus.Debugf("Library detection completed. Found %d required libraries.", len(l.importedLibraries))
 	}()
 
-	err := l.findIncludes(ctx, buildPath, buildCorePath, buildVariantPath, sketchBuildPath, sketch, librariesBuildPath, buildProperties, platformArch, jobs)
+	err := l.findIncludes(ctx, buildPath, buildCorePath, buildVariantPath, sketchBuildPath, sketch, librariesBuildPath, buildProperties, platformArchitectures, jobs)
 	if err != nil && l.onlyUpdateCompilationDatabase {
 		l.logger.Info(
 			fmt.Sprintf(
@@ -277,7 +277,7 @@ func (l *SketchLibrariesDetector) findIncludes(
 	sketch *sketch.Sketch,
 	librariesBuildPath *paths.Path,
 	buildProperties *properties.Map,
-	platformArch string,
+	platformArchitectures []string,
 	jobs int,
 ) error {
 	librariesResolutionCachePath := buildPath.Join("libraries.cache")
@@ -365,7 +365,7 @@ func (l *SketchLibrariesDetector) findIncludes(
 		}
 
 		for !sourceFileQueue.Empty() {
-			err := l.findMissingIncludesInCompilationUnit(ctx, sourceFileQueue, buildProperties, librariesBuildPath, platformArch)
+			err := l.findMissingIncludesInCompilationUnit(ctx, sourceFileQueue, buildProperties, librariesBuildPath, platformArchitectures)
 			if err != nil {
 				cachePath.Remove()
 				return err
@@ -421,7 +421,7 @@ func (l *SketchLibrariesDetector) findMissingIncludesInCompilationUnit(
 	sourceFileQueue *uniqueSourceFileQueue,
 	buildProperties *properties.Map,
 	librariesBuildPath *paths.Path,
-	platformArch string,
+	platformArchitectures []string,
 ) error {
 	sourceFile := sourceFileQueue.Pop()
 	sourcePath := sourceFile.SourcePath
@@ -518,7 +518,7 @@ func (l *SketchLibrariesDetector) findMissingIncludesInCompilationUnit(
 			return nil
 		}
 
-		library := l.resolveLibrary(missingIncludeH, platformArch)
+		library := l.resolveLibrary(missingIncludeH, platformArchitectures)
 		if library == nil {
 			// Library could not be resolved, show error
 
